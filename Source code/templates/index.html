@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supermarket Chatbot</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #34495E;
+        }
+        .chat-container {
+            max-width: 700px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #99A3A4;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .chat-box {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            height: 500px;
+            overflow-y: scroll;
+            margin-bottom: 20px;
+        }
+        .input-box {
+            display: flex;
+        }
+        .input-box input {
+            flex: 1;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            margin-right: 10px;
+        }
+        .input-box button {
+            padding: 10px 20px;
+            border-radius: 5px;
+            border: none;
+            background: #007bff;
+            color: white;
+        }
+        .chat-message {
+            margin: 5px 0;
+        }
+        .chat-message.user {
+            text-align: right;
+        }
+        .chat-message.bot {
+            text-align: left;
+        }
+        .chat-message p {
+            display: inline-block;
+            padding: 10px;
+            border-radius: 10px;
+        }
+        .chat-message.user p {
+            background: #273746;
+            color: white;
+        }
+        .chat-message.bot p {
+            background: #273746;
+            color: white;
+        }
+        #summary {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background: #f1f1f1;
+        }
+    </style>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="chat-container">
+        <h2 class="text-center">Supermarket Chatbot</h2>
+        <div class="chat-box" id="chat-box"></div>
+        <div class="input-box">
+            <input type="text" id="user-input" placeholder="Enter your message...">
+            <button onclick="sendMessage()">Send</button>
+            <button onclick="startNewChat()" style="margin-left: 10px; background-color: #28a745;">New Chat</button>
+        </div>
+        <div id="summary" style="display: none;">
+            <h4>Summary</h4>
+            <pre id="summary-content"></pre>
+            <button class="btn btn-primary" onclick="printSummary()">Print Summary</button>
+        </div>
+    </div>
+
+    <script>
+        var socket = io();
+
+        socket.on('response', function(data) {
+            const chatBox = document.getElementById('chat-box');
+            const botMessage = document.createElement('div');
+            botMessage.className = 'chat-message bot';
+            botMessage.innerHTML = `<p>${data.response}</p>`;
+            chatBox.appendChild(botMessage);
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            if (data.summary) {
+                document.getElementById('summary-content').innerText = data.summary;
+                document.getElementById('summary').style.display = 'block';
+            }
+        });
+
+        function sendMessage() {
+            const userInput = document.getElementById('user-input').value;
+            const chatBox = document.getElementById('chat-box');
+
+            if (userInput.trim() === '') {
+                return;
+            }
+
+            const userMessage = document.createElement('div');
+            userMessage.className = 'chat-message user';
+            userMessage.innerHTML = `<p>${userInput}</p>`;
+            chatBox.appendChild(userMessage);
+
+            socket.emit('message', { message: userInput });
+            document.getElementById('user-input').value = '';
+        }
+
+        function startNewChat() {
+            document.getElementById('chat-box').innerHTML = '';
+            document.getElementById('summary').style.display = 'none';
+            document.getElementById('user-input').value = '';
+            socket.emit('new_chat');
+        }
+
+        function printSummary() {
+            const summaryContent = document.getElementById('summary-content').innerText;
+            const newWindow = window.open('', '', 'width=600,height=400');
+            newWindow.document.write(`
+                <h2 style="text-align: center;">Shelf Numbers</h2>
+                <pre style="font-size: 18px;">${summaryContent}</pre>
+            `);
+            newWindow.print();
+        }
+
+        window.onload = function() {
+            socket.emit('connect');
+        }
+    </script>
+</body>
+</html>
+
